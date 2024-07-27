@@ -1,0 +1,158 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+
+class ConferenceRoom {
+    private int roomNumber;
+    private boolean isBooked;
+    private boolean isOccupied;
+    private AirConditioning ac;
+    private Lighting lights;
+    private Timer timer;
+
+    public ConferenceRoom(int roomNumber) {
+        this.roomNumber = roomNumber;
+        this.isBooked = false;
+        this.isOccupied = false;
+        this.ac = new AirConditioning();
+        this.lights = new Lighting();
+        this.timer = new Timer();
+    }
+
+    public void book() {
+        if (!isBooked) {
+            isBooked = true;
+            System.out.println("Room " + roomNumber + " booked.");
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    checkOccupancy();
+                }
+            }, 5 * 60 * 1000); // 5 minutes
+        } else {
+            System.out.println("Room " + roomNumber + " is already booked.");
+        }
+    }
+
+    public void cancelBooking() {
+        if (isBooked) {
+            isBooked = false;
+            isOccupied = false;
+            turnOffAirConditioningAndLights();
+            timer.cancel();
+            timer = new Timer();
+            System.out.println("Booking for room " + roomNumber + " cancelled.");
+        } else {
+            System.out.println("Room " + roomNumber + " is not booked.");
+        }
+    }
+
+    private void checkOccupancy() {
+        if (!isOccupied) {
+            cancelBooking();
+        }
+    }
+
+    public void detectOccupancy(boolean isOccupied) {
+        this.isOccupied = isOccupied;
+        if (this.isOccupied) {
+            ac.turnOn();
+            lights.turnOn();
+        } else {
+            turnOffAirConditioningAndLights();
+        }
+    }
+
+    private void turnOffAirConditioningAndLights() {
+        ac.turnOff();
+        lights.turnOff();
+    }
+}
+
+class AirConditioning {
+    public void turnOn() {
+        System.out.println("Air conditioning turned on.");
+    }
+
+    public void turnOff() {
+        System.out.println("Air conditioning turned off.");
+    }
+}
+
+class Lighting {
+    public void turnOn() {
+        System.out.println("Lights turned on.");
+    }
+
+    public void turnOff() {
+        System.out.println("Lights turned off.");
+    }
+}
+
+class Sensor {
+    public void detectOccupancy(ConferenceRoom room, boolean isOccupied) {
+        room.detectOccupancy(isOccupied);
+    }
+}
+
+class OfficeFacility {
+    private List<ConferenceRoom> rooms;
+
+    public OfficeFacility() {
+        rooms = new ArrayList<>();
+    }
+
+    public void configureRooms(int numRooms) {
+        rooms.clear();
+        for (int i = 1; i <= numRooms; i++) {
+            rooms.add(new ConferenceRoom(i));
+        }
+        System.out.println("Configured " + numRooms + " rooms.");
+    }
+
+    public void bookRoom(int roomNumber) {
+        if (roomNumber >= 1 && roomNumber <= rooms.size()) {
+            rooms.get(roomNumber - 1).book();
+        } else {
+            System.out.println("Room " + roomNumber + " does not exist.");
+        }
+    }
+
+    public void cancelBooking(int roomNumber) {
+        if (roomNumber >= 1 && roomNumber <= rooms.size()) {
+            rooms.get(roomNumber - 1).cancelBooking();
+        } else {
+            System.out.println("Room " + roomNumber + " does not exist.");
+        }
+    }
+
+    public void checkOccupancy(int roomNumber, boolean isOccupied) {
+        if (roomNumber >= 1 && roomNumber <= rooms.size()) {
+            Sensor sensor = new Sensor();
+            sensor.detectOccupancy(rooms.get(roomNumber - 1), isOccupied);
+        } else {
+            System.out.println("Room " + roomNumber + " does not exist.");
+        }
+    }
+
+    public void releaseUnoccupiedRooms() {
+        for (ConferenceRoom room : rooms) {
+            room.checkOccupancy();
+        }
+    }
+}
+
+// Example usage
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        OfficeFacility office = new OfficeFacility();
+        office.configureRooms(5);
+        office.bookRoom(1);
+        office.checkOccupancy(1, true);
+        Thread.sleep(2000); // Simulate time passing
+        office.checkOccupancy(1, false);
+        Thread.sleep(300000); // Simulate time passing to see if room gets released automatically
+        office.cancelBooking(1);
+    }
+}
